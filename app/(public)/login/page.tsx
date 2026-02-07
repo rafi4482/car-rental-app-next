@@ -1,11 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
+import { loginUser } from "@/actions/users"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -43,6 +47,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function Login() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -52,8 +59,21 @@ export default function Login() {
     },
   })
 
-  function onSubmit(values: LoginFormValues) {
-    console.log(values)
+  async function onSubmit(values: LoginFormValues) {
+    try {
+      setLoading(true)
+      const response = await loginUser(values)
+      if (response.success) {
+        toast.success(response.message)
+        router.push("/")
+      } else {
+        toast.error(response.message)
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -127,7 +147,8 @@ export default function Login() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="animate-spin" />}
                 Login
               </Button>
             </form>
